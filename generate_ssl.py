@@ -7,47 +7,56 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 import ipaddress
 
-server_IP = 'IP address'
-h_name = 'server_name'
+from config import SERVER_IP, H_NAME, CERT_NAME
 
-key = rsa.generate_private_key(
-    public_exponent=65537,
-    key_size=2048,
-    backend=default_backend(),
-)
+server_IP = SERVER_IP
+h_name = H_NAME
+cert_name = CERT_NAME
 
-name = x509.Name([
-    x509.NameAttribute(NameOID.COMMON_NAME, h_name)
-])
 
-alt_names = [x509.DNSName(h_name)]
-alt_names.append(x509.DNSName(server_IP))
-alt_names.append(x509.IPAddress(ipaddress.ip_address(server_IP)))
+def create_certify():
+    key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+        backend=default_backend(),
+    )
 
-basic_contraints = x509.BasicConstraints(ca=True, path_length=0)
-now = datetime.utcnow()
-cert = (
-    x509.CertificateBuilder()
-        .subject_name(name)
-        .issuer_name(name)
-        .public_key(key.public_key())
-        .serial_number(1000)
-        .not_valid_before(now)
-        .not_valid_after(now + timedelta(days=365))
-        .add_extension(basic_contraints, True)
-        .add_extension(x509.SubjectAlternativeName(alt_names), False)
-        .sign(key, hashes.SHA256(), default_backend())
-)
+    name = x509.Name([
+        x509.NameAttribute(NameOID.COMMON_NAME, h_name)
+    ])
 
-my_cert_pem = cert.public_bytes(encoding=serialization.Encoding.PEM)
-my_key_pem = key.private_bytes(
-    encoding=serialization.Encoding.PEM,
-    format=serialization.PrivateFormat.TraditionalOpenSSL,
-    encryption_algorithm=serialization.NoEncryption(),
-)
+    alt_names = [x509.DNSName(h_name)]
+    alt_names.append(x509.DNSName(server_IP))
+    alt_names.append(x509.IPAddress(ipaddress.ip_address(server_IP)))
 
-with open('test_ubuntu_new.crt', 'wb') as c:
-    c.write(my_cert_pem)
+    basic_contraints = x509.BasicConstraints(ca=True, path_length=0)
+    now = datetime.utcnow()
+    cert = (
+        x509.CertificateBuilder()
+            .subject_name(name)
+            .issuer_name(name)
+            .public_key(key.public_key())
+            .serial_number(1000)
+            .not_valid_before(now)
+            .not_valid_after(now + timedelta(days=365))
+            .add_extension(basic_contraints, True)
+            .add_extension(x509.SubjectAlternativeName(alt_names), False)
+            .sign(key, hashes.SHA256(), default_backend())
+    )
 
-with open('test_ubuntu_new.key', 'wb') as k:
-    k.write(my_key_pem)
+    my_cert_pem = cert.public_bytes(encoding=serialization.Encoding.PEM)
+    my_key_pem = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    with open(f'{cert_name}.crt', 'wb') as c:
+        c.write(my_cert_pem)
+
+    with open(f'{cert_name}.key', 'wb') as k:
+        k.write(my_key_pem)
+
+
+if __name__ == '__main__':
+    create_certify()
